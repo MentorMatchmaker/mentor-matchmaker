@@ -1,14 +1,12 @@
 {
   "name": "mentor-matchmaker",
-  "version": "1.0.0",
   "type": "module",
+  "version": "1.0.0",
   "description": "Challenge Sandwich Framework App by Brian Frankel",
-  "main": "api/chat.js",
-  "scripts": {
-    "dev": "vercel dev"
-  },
+  "main": "index.html",
+  "scripts": {},
   "dependencies": {},
-  "devDependencies": {
-    "vercel": "^33.0.0"
+  "engines": {
+    "node": "18.x"
   }
 }
