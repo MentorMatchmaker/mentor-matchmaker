@@ -1,0 +1,553 @@
+!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mentor Matchmaker - Challenge Sandwich Framework</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        'primary-light': '#7B7AE8',
+                        'primary-dark': '#4A49C2'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .chat-message {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .typing-indicator {
+            animation: pulse 2s infinite;
+        }
+        .markdown-content h3 {
+            font-weight: 600;
+            font-size: 1.125rem;
+            margin: 1rem 0 0.5rem 0;
+        }
+        .markdown-content p {
+            margin: 0.5rem 0;
+        }
+        .markdown-content ul {
+            list-style-type: disc;
+            margin-left: 1.5rem;
+            margin: 0.5rem 0;
+        }
+        .markdown-content strong {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900 transition-colors duration-200">
+    <script>
+        // Dark mode detection
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+    </script>
+
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-gradient-to-br from-primary to-primary-light rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">MM</span>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold text-gray-900 dark:text-white">Mentor Matchmaker</h1>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Challenge Sandwich Framework</p>
+                        </div>
+                    </div>
+                    <button onclick="resetSession()" class="text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition-colors">
+                        Start Over
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-hidden">
+            <div class="max-w-4xl mx-auto h-full flex flex-col">
+                <!-- Chat Container -->
+                <div class="flex-1 overflow-y-auto px-4 py-6" id="chatContainer">
+                    <div class="space-y-6" id="chatMessages">
+                        <!-- Welcome message will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="border-t border-gray-200 dark:border-gray-700 px-4 py-4 bg-white dark:bg-gray-800">
+                    <div class="flex items-center space-x-3">
+                        <div class="flex-1">
+                            <textarea
+                                id="userInput"
+                                placeholder="Type your response here..."
+                                class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                                rows="2"
+                                maxlength="1000"
+                            ></textarea>
+                        </div>
+                        <button
+                            id="sendButton"
+                            onclick="sendMessage()"
+                            class="px-6 py-3 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Send
+                        </button>
+                    </div>
+                    <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Press Enter to send • <span id="charCount">0</span>/1000 characters
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Challenge Sandwich Display Modal -->
+    <div id="sandwichModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Your Challenge Sandwich</h2>
+                    <button onclick="closeSandwichModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="sandwichContent" class="space-y-6">
+                    <!-- Sandwich content will be inserted here -->
+                </div>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button onclick="copySandwich()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
+                        Copy to Clipboard
+                    </button>
+                    <button onclick="downloadSandwich()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        Download
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let conversationState = {
+            phase: 'welcome',
+            userChallenge: '',
+            gameplanSteps: [],
+            background: '',
+            completeSandwich: null,
+            conversationHistory: []
+        };
+
+        let isWaitingForResponse = false;
+
+        // Initialize the app
+        function initializeApp() {
+            setupEventListeners();
+            showWelcomeMessage();
+        }
+
+        function setupEventListeners() {
+            const userInput = document.getElementById('userInput');
+            const sendButton = document.getElementById('sendButton');
+
+            userInput.addEventListener('input', function() {
+                const charCount = this.value.length;
+                document.getElementById('charCount').textContent = charCount;
+                sendButton.disabled = charCount === 0 || isWaitingForResponse;
+            });
+
+            userInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            userInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            });
+        }
+
+        function showWelcomeMessage() {
+            const welcomeMessage = `Hello! I'm the Mentor Matchmaker. I'm going to help you find a great mentor using a proven framework called the 'Challenge Sandwich.' We'll work together to build yours.
+
+**What is a specific professional challenge you'd like to solve in the next 60 days?**
+
+It could be landing a new role, validating a business idea, or learning a key skill. Don't worry about making it perfect; we'll refine it together.`;
+
+            addMessage('assistant', welcomeMessage);
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput');
+            const message = userInput.value.trim();
+            
+            if (!message || isWaitingForResponse) return;
+
+            addMessage('user', message);
+            conversationState.conversationHistory.push({role: 'user', content: message});
+            
+            userInput.value = '';
+            userInput.style.height = 'auto';
+            document.getElementById('charCount').textContent = '0';
+
+            isWaitingForResponse = true;
+            updateSendButton();
+            addMessage('assistant', '', true);
+
+            try {
+                await sendToBackend(message);
+            } catch (error) {
+                handleError("Sorry, I'm having trouble connecting. Please try again.");
+                isWaitingForResponse = false;
+                updateSendButton();
+            }
+        }
+
+        async function sendToBackend(userMessage) {
+            const systemPrompt = `You are Brian Leor Frankel, the Mentor Matchmaker, a friendly and expert mentor relationship coach. You've built several mentorship programs and written the definitive book "How to Find a Mentor."
+
+Your goal is to empower users by helping them build a compelling "Challenge Sandwich" that makes mentors want to help them. You act as a coach, not a form-filler. You're supportive but firm about quality standards--you won't let users settle for vague or unrealistic challenges.
+
+The Challenge Sandwich has three parts:
+
+**The Meat: Your 60-Day Challenge**
+- Use "challenge" instead of "goal" because challenges are more tangible and actionable
+- Must be S.M.A.R.T (Specific, Measurable, Achievable, Realistic, Timely)
+- 60 days gives enough time to take action on mentor advice
+- Examples: "Get 6 new customers," "Create a presentation for your manager about a workflow problem," "Talk to 20 potential customers to validate your mobile app idea"
+
+**The Secret Sauce: Your Game Plan** 
+- 2-3 steps of "thinking three steps ahead"
+- Shows you're willing to learn and take action
+- Makes it easier for mentors to help update your plan
+
+**The Bread: Your Background**
+- Recent accomplishments from past few months showing you're proactive
+- Unique strengths that make you feel great
+- Shows potential to learn and momentum toward solving the challenge
+
+Never accept broad challenges like "Figure out my career," "Get better at sales," or "Grow my business." Help make them specific and actionable.
+
+Follow this conversation flow:
+1. Challenge refinement with specific suggestions
+2. Game plan development  
+3. Background building
+4. Complete Challenge Sandwich output with quality score
+5. Menu of next steps (networking, meeting prep, baby steps, confidence building)
+
+Be encouraging, direct, and professional. Use the exact response formats from your methodology.`;
+
+            const contextualPrompt = buildContextualPrompt(userMessage);
+
+            const messages = [
+                {role: 'system', content: systemPrompt},
+                ...conversationState.conversationHistory.slice(-10),
+                {role: 'user', content: contextualPrompt}
+            ];
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ messages })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.details || 'Server error');
+                }
+
+                const data = await response.json();
+                const assistantMessage = data.choices[0].message.content;
+
+                conversationState.conversationHistory.push({role: 'assistant', content: assistantMessage});
+                updateLastAssistantMessage(assistantMessage);
+                checkForSandwichCompletion(assistantMessage);
+
+            } catch (error) {
+                console.error('Backend API Error:', error);
+                updateLastAssistantMessage(`❌ Error: ${error.message}\n\nPlease try again.`);
+            }
+
+            isWaitingForResponse = false;
+            updateSendButton();
+        }
+
+        function buildContextualPrompt(userMessage) {
+            let context = "";
+            
+            if (conversationState.phase === 'welcome') {
+                context += "The user is providing their initial challenge idea. DO NOT repeat the opening introduction message since it was already shown to the user. Skip directly to the challenge refinement response format. ";
+            } else if (conversationState.phase === 'challenge-refinement') {
+                context += `The user is responding to challenge refinement. Current challenge: "${conversationState.userChallenge}". `;
+            } else if (conversationState.phase === 'gameplan') {
+                context += `Challenge is set: "${conversationState.userChallenge}". User is providing gameplan steps. `;
+            } else if (conversationState.phase === 'background') {
+                context += `Challenge: "${conversationState.userChallenge}". Gameplan: ${JSON.stringify(conversationState.gameplanSteps)}. User is providing background. `;
+            } else if (conversationState.phase === 'menu') {
+                context += `Challenge Sandwich is complete. User is selecting from the menu options (A-E). `;
+            }
+
+            return context + `User message: "${userMessage}"`;
+        }
+
+        function addMessage(sender, content, isLoading = false) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message';
+
+            if (sender === 'user') {
+                messageDiv.innerHTML = `
+                    <div class="flex justify-end mb-4">
+                        <div class="max-w-3xl bg-primary text-white rounded-lg px-4 py-3">
+                            <div class="whitespace-pre-wrap">${escapeHtml(content)}</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const loadingClass = isLoading ? 'typing-indicator' : '';
+                const contentHtml = isLoading ? 
+                    '<div class="flex items-center space-x-2"><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div></div>' :
+                    `<div class="markdown-content">${marked.parse(content)}</div>`;
+
+                messageDiv.innerHTML = `
+                    <div class="flex justify-start mb-4">
+                        <div class="max-w-3xl bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-4 py-3 ${loadingClass}">
+                            ${contentHtml}
+                        </div>
+                    </div>
+                `;
+            }
+
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function updateLastAssistantMessage(content) {
+            const chatMessages = document.getElementById('chatMessages');
+            const lastMessage = chatMessages.lastElementChild;
+            
+            if (lastMessage && lastMessage.querySelector('.bg-gray-100, .bg-gray-700')) {
+                const contentDiv = lastMessage.querySelector('.bg-gray-100, .bg-gray-700');
+                contentDiv.className = contentDiv.className.replace('typing-indicator', '');
+                contentDiv.innerHTML = `<div class="markdown-content">${marked.parse(content)}</div>`;
+                scrollToBottom();
+            }
+        }
+
+        function checkForSandwichCompletion(content) {
+            if (content.includes('Challenge Sandwich is complete') || 
+                content.includes('Complete Sandwich:') ||
+                content.includes('**Complete Sandwich:**') ||
+                content.includes('Your Challenge Sandwich:')) {
+                extractSandwichFromContent(content);
+            }
+        }
+
+        function extractSandwichFromContent(content) {
+            const lines = content.split('\n');
+            let challenge = '', gameplan = '', background = '';
+            let currentSection = '';
+
+            for (let line of lines) {
+                if (line.includes('Challenge:') || line.includes('**Challenge:**') || line.includes('60-Day Challenge:')) {
+                    currentSection = 'challenge';
+                } else if (line.includes('Game Plan:') || line.includes('**Game Plan:**') || line.includes('Secret Sauce:')) {
+                    currentSection = 'gameplan';
+                } else if (line.includes('Background:') || line.includes('**Background:**') || line.includes('Bread:')) {
+                    currentSection = 'background';
+                } else if (currentSection && line.trim() && !line.includes('**') && !line.includes('#')) {
+                    if (currentSection === 'challenge') challenge += line.trim() + '\n';
+                    else if (currentSection === 'gameplan') gameplan += line.trim() + '\n';
+                    else if (currentSection === 'background') background += line.trim() + '\n';
+                }
+            }
+
+            if (challenge && gameplan && background) {
+                conversationState.completeSandwich = {
+                    challenge: challenge.trim(),
+                    gameplan: gameplan.trim(),
+                    background: background.trim()
+                };
+                setTimeout(() => showSandwichModal(), 1000);
+            }
+        }
+
+        function showSandwichModal() {
+            const modal = document.getElementById('sandwichModal');
+            const content = document.getElementById('sandwichContent');
+            const sandwich = conversationState.completeSandwich;
+
+            if (!sandwich) return;
+
+            content.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                        <h3 class="font-semibold text-blue-900 dark:text-blue-100 mb-2">🥩 The Meat: Your 60-Day Challenge</h3>
+                        <p class="text-blue-800 dark:text-blue-200">${escapeHtml(sandwich.challenge)}</p>
+                    </div>
+                    
+                    <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                        <h3 class="font-semibold text-green-900 dark:text-green-100 mb-2">🥄 The Secret Sauce: Your Game Plan</h3>
+                        <div class="text-green-800 dark:text-green-200 whitespace-pre-wrap">${escapeHtml(sandwich.gameplan)}</div>
+                    </div>
+                    
+                    <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+                        <h3 class="font-semibold text-purple-900 dark:text-purple-100 mb-2">🍞 The Bread: Your Background</h3>
+                        <div class="text-purple-800 dark:text-purple-200 whitespace-pre-wrap">${escapeHtml(sandwich.background)}</div>
+                    </div>
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeSandwichModal() {
+            document.getElementById('sandwichModal').classList.add('hidden');
+        }
+
+        function copySandwich() {
+            const sandwich = conversationState.completeSandwich;
+            if (!sandwich) return;
+
+            const text = `MY CHALLENGE SANDWICH
+
+🥩 The Meat: 60-Day Challenge
+${sandwich.challenge}
+
+🥄 The Secret Sauce: Game Plan
+${sandwich.gameplan}
+
+🍞 The Bread: Background
+${sandwich.background}
+
+---
+Created with the Mentor Matchmaker Challenge Sandwich Framework
+By Brian Leor Frankel - "How to Find a Mentor"`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                showTemporaryMessage(event.target, 'Copied!', 'bg-green-600');
+            });
+        }
+
+        function downloadSandwich() {
+            const sandwich = conversationState.completeSandwich;
+            if (!sandwich) return;
+
+            const content = `MY CHALLENGE SANDWICH
+
+🥩 The Meat: 60-Day Challenge
+${sandwich.challenge}
+
+🥄 The Secret Sauce: Game Plan  
+${sandwich.gameplan}
+
+🍞 The Bread: Background
+${sandwich.background}
+
+---
+Created with the Mentor Matchmaker Challenge Sandwich Framework
+By Brian Leor Frankel - "How to Find a Mentor"
+MentorMatchmaker.com`;
+
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'my-challenge-sandwich.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showTemporaryMessage(event.target, 'Downloaded!', 'bg-green-600');
+        }
+
+        function showTemporaryMessage(button, message, bgClass) {
+            const originalText = button.textContent;
+            const originalClass = button.className;
+            button.textContent = message;
+            button.className = button.className.replace('bg-primary', bgClass);
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.className = originalClass;
+            }, 2000);
+        }
+
+        function updateSendButton() {
+            const sendButton = document.getElementById('sendButton');
+            const userInput = document.getElementById('userInput');
+            
+            sendButton.disabled = userInput.value.trim() === '' || isWaitingForResponse;
+            sendButton.textContent = isWaitingForResponse ? 'Thinking...' : 'Send';
+        }
+
+        function handleError(message) {
+            updateLastAssistantMessage(`❌ ${message}\n\nPlease try again.`);
+        }
+
+        function resetSession() {
+            conversationState = {
+                phase: 'welcome',
+                userChallenge: '',
+                gameplanSteps: [],
+                background: '',
+                completeSandwich: null,
+                conversationHistory: []
+            };
+            
+            document.getElementById('chatMessages').innerHTML = '';
+            document.getElementById('userInput').value = '';
+            document.getElementById('charCount').textContent = '0';
+            isWaitingForResponse = false;
+            updateSendButton();
+            
+            showWelcomeMessage();
+        }
+
+        function scrollToBottom() {
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
