@@ -1,6 +1,7 @@
 {
   "name": "mentor-matchmaker",
   "version": "1.0.0",
+  "type": "module",
   "description": "Challenge Sandwich Framework App by Brian Frankel",
   "main": "api/chat.js",
   "scripts": {
